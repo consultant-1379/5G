@@ -1,0 +1,288 @@
+#!/bin/bash
+AWK=/bin/awk
+CAT=/bin/cat
+CUT=/bin/cut
+ECHO=/bin/echo
+GREP=/bin/grep
+HEAD=/usr/bin/head
+LS=/bin/ls
+RM=/bin/rm
+SED=/bin/sed
+SFTP=/usr/bin/sftp
+
+setup(){
+    remove_metadata_from_previous_download
+    setup_global_variables
+    reset_metadata_results_file
+    create_sftp_batch_file
+}
+
+remove_metadata_from_previous_download(){
+    remove_metadata "NMS"
+    remove_metadata "SMO"
+}
+
+reset_metadata_results_file(){
+    $ECHO "" > $OUTPUT_CSV_FILE
+}
+
+create_sftp_batch_file(){
+    $ECHO "get NMS_*" > $SFTP_BATCH_FILE
+    $ECHO "get SMO_*" >> $SFTP_BATCH_FILE
+}
+
+setup_global_variables(){
+    PIB_PARAMETER=""
+    KVM_NAME=""
+    SFTP_COMMAND=""
+    PACKAGE_NAME=""
+    PACKAGE_TYPE=""
+    PACKAGE_FUNCTION=""
+    PACKAGE_RELEASE_DATE=""
+
+    OUTPUT_CSV_FILE="metadata_output.txt"
+    SFTP_BATCH_FILE="sftp_batchfile.txt"
+    
+    METADATA_FILES=""
+    LOG_FILE=cas_connection.log
+
+    remove_file "/root/.ssh/known_hosts"
+}
+
+set_pib_parameter_command(){
+    pib_parameter=$1
+
+    PIB_PARAMETER=$(/ericsson/pib-scripts/etc/config.py read --app_server_address=$KVM_NAME:8080 --service_identifier=shm-softwarepackagemanagement-ear --name=$pib_parameter)
+}
+
+set_ipaddress(){
+    set_pib_parameter_command "NE_SOFTWARE_STORE_IP_ADDRESS"
+    IP_ADDRESS="$PIB_PARAMETER"
+}
+
+set_port_number(){
+    set_pib_parameter_command "NE_SOFTWARE_STORE_PORT_NUMBER"
+    PORT_NUMBER="$PIB_PARAMETER"
+}
+
+set_software_location(){
+    set_pib_parameter_command "NE_SOFTWARE_STORE_DIRECTORY_PATH"
+    DIRECTORY_PATH="$PIB_PARAMETER"
+}
+
+set_username(){
+    set_pib_parameter_command "NE_SOFTWARE_STORE_USERNAME"
+    USERNAME="$PIB_PARAMETER"
+}
+
+get_kvm_name(){
+    check_deployment_type
+
+    if [ $DEPLOYMENT_RESULT -ne 0 ]
+    then
+        get_kvm_name_on_cloud
+    else
+        get_kvm_name_on_physical
+    fi
+}
+
+check_deployment_type(){
+    $CAT /etc/hosts | $GREP shmserv > /dev/null 2>&1
+    DEPLOYMENT_RESULT=$?
+}
+
+get_kvm_name_on_physical(){
+    KVM_NAME=$($CAT /etc/hosts | $GREP shmserv | $AWK '{print $2}' | $HEAD -1)
+}
+
+get_kvm_name_on_cloud(){
+    KVM_NAME="shmserv"
+}
+
+setup_pib_parameters(){
+    get_kvm_name
+    set_ipaddress
+    set_port_number
+    set_software_location
+    set_username
+}
+
+set_sftp_command(){
+    private_key=/ericsson/tor/data/shm/sftp/sftp_key
+    SFTP_COMMAND="$SFTP -oIdentityFile=$private_key -oPort=$PORT_NUMBER -oStrictHostKeyChecking=no -b $SFTP_BATCH_FILE  $USERNAME@$IP_ADDRESS:$DIRECTORY_PATH"
+}
+
+generate_sftp_command(){
+    setup_pib_parameters
+    set_sftp_command
+}
+
+run_command(){
+    command="$1"
+    error="$2"
+
+    $command
+
+    result=$?
+    if [ $result -ne 0 ]
+    then
+        log_it "$error"
+        exit 1
+    fi
+}
+
+download_metadata_files(){
+    generate_sftp_command
+    $ECHO "-------------------------------------"
+    $ECHO "Downloading Files from CAS Server"
+    $ECHO "-------------------------------------"
+    $ECHO ""
+    
+    run_command "$SFTP_COMMAND" "ERROR: Failed to download the metadata files from $IP_ADDRESS"
+    $ECHO ""
+    $ECHO "-------------------------------------"
+    $ECHO "Download from CAS Server finished"
+    $ECHO "-------------------------------------"
+}
+
+
+log_it(){
+   $ECHO $*
+   $ECHO `date '+%Y-%m-%d_%H:%M:%S': ` $* >> ${LOG_FILE}
+}
+
+extract_metadata_to_file(){
+    print_header
+    extract_metadata_file_information
+}
+
+print_header(){
+    $ECHO ""
+    $ECHO "Name, ------------ Package Type, Node Function, Release Date" > $OUTPUT_CSV_FILE
+    $ECHO ""
+}
+
+extract_metadata_file_information(){
+    extract_nms_metadata
+    extract_smo_metadata
+}
+
+extract_nms_metadata(){
+    set_metadata_files "NMS"
+    for metadata_file in $METADATA_FILES;
+    do
+        get_nms_metadata "$metadata_file"
+        get_nms_package_name;
+        get_nms_package_type;
+        get_nms_function;
+        get_nms_release_date;
+        print_meta_data_to_file
+    done
+}
+
+set_metadata_files(){
+    file_type=$1
+    METADATA_FILES=$($LS | $GREP ${file_type})
+}
+
+remove_metadata(){
+    file_type=$1
+    set_metadata_files "$file_type"
+    for metadata_file in $METADATA_FILES;
+    do
+        remove_file "$metadata_file"
+    done
+}
+
+print_meta_data_to_file(){
+    $ECHO "$PACKAGE_NAME, $PACKAGE_TYPE, $PACKAGE_FUNCTION, $PACKAGE_RELEASE_DATE" >> $OUTPUT_CSV_FILE
+}
+
+get_nms_metadata(){
+    metadata_file="$1"
+
+    METADATA=$(cat $metadata_file | $GREP '<ProductData' |  $SED 's/<//g' | $SED 's/\/>//g' | $SED 's/^[ \t]*//g')
+}
+
+get_nms_package_name(){
+    product_number=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP productNumber | $CUT -d = -f2 | $SED 's/\"//g')
+    product_revision=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP productRevision | $CUT -d = -f2 | $SED 's/\"//g')
+    PACKAGE_NAME=${product_number}-${product_revision}
+}
+
+get_nms_package_type(){
+    PACKAGE_TYPE="upgrade"
+}
+
+get_nms_function(){
+    PACKAGE_FUNCTION=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP productName | $CUT -d = -f2 | $SED 's/\"//g')
+}
+
+get_nms_release_date(){
+    PACKAGE_RELEASE_DATE=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP productionDate | $CUT -d = -f2 | $SED 's/\"//g' | $SED 's/T/ /g')
+}
+
+
+extract_smo_metadata(){
+    set_metadata_files "SMO"
+    for metadata_file in $METADATA_FILES;
+    do
+        get_smo_metadata "$metadata_file"
+        get_smo_package_name;
+        get_smo_package_type;
+        get_smo_function;
+        get_smo_release_date;
+        print_meta_data_to_file
+    done
+}
+
+remove_file(){
+    file_name=$1
+    run_command "$RM -f $file_name" "ERROR: Cannot remove the file $file_name"
+}
+
+get_smo_metadata(){
+    metadata_file="$1"
+
+    METADATA=$(cat $metadata_file | $AWK '/<ProductData/ {f=1}; f && c==0; /\/>/ {f=0; c++}' | $SED 1d | $SED 's/\/>//g' | $SED 's/^[ \t]//g' )
+}
+
+get_smo_package_name(){
+    package_number=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP Number | $CUT -d = -f2 | $SED 's/\"//g')
+    package_revision=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP Revision | $CUT -d = -f2 | $SED 's/\"//g')
+    PACKAGE_NAME=${package_number}-${package_revision}
+}
+
+get_smo_package_type(){
+    PACKAGE_TYPE=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP Type | $CUT -d = -f2 | $SED 's/\"//g')
+}
+
+get_smo_function(){
+    PACKAGE_FUNCTION=$($ECHO $METADATA | $SED 's/\" /\n/g' | $GREP Name | $CUT -d = -f2 | $SED 's/\"//g')
+}
+
+get_smo_release_date(){
+    release_date=$($ECHO $METADATA | $SED 's/ /\n/g' | $GREP ReleaseDate= | $CUT -d = -f2 | $SED 's/\"//g')
+    year=${release_date:0:4}
+    month=${release_date:4:2}
+    day=${release_date:6:2}
+    PACKAGE_RELEASE_DATE="${year}-${month}-${day} 00:00:00"
+}
+
+cleanup(){
+    remove_file $SFTP_BATCH_FILE
+}
+
+print_metadata(){
+    
+    $CAT $OUTPUT_CSV_FILE | $SED 's/, / -------- /g'
+}
+
+####################
+####    Main   #####
+####################
+setup
+download_metadata_files
+extract_metadata_to_file
+print_metadata
+cleanup

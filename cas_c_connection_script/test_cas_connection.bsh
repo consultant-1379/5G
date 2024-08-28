@@ -1,0 +1,66 @@
+#!/bin/bash
+
+check_passed(){
+    function_name="$1"
+    failure_message="$2"
+    result=$3
+
+    if [ $result -ne 0 ]
+    then
+        record_results "Failed - '$function_name'"
+        record_results "-------- $failure_message"
+        record_results
+    else
+        record_results "Passed - '$function_name'"
+    fi
+}
+
+verify_metadata_table_output(){
+    setup
+
+    run_script_no_output
+
+    diff "expected_output.txt" "metadata_output.txt"
+
+    result=$?
+    check_passed "verify_metadata_table_output" "Expected Metadata Table not equal to actual Metadata table" $result
+
+    teardown
+}
+
+setup(){
+    echo "setup"
+    teardown
+}
+
+teardown(){
+    echo "teardown"
+}
+
+run_script_no_output(){
+    bash cas_connection.bsh > /dev/null 2>&1
+}
+
+reset_results_file(){
+    echo > test_results
+}
+
+record_results(){
+    result="$1"
+    echo $result >> test_results
+}
+
+run_tests(){
+    verify_metadata_table_output
+}
+
+verify_results(){
+    cat test_results
+}
+
+####################
+###    Main     ####
+####################
+reset_results_file
+run_tests
+verify_results

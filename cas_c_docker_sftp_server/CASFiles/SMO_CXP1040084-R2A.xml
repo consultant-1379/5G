@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- /vobs/remote_swh_bsc/Upgrade/./SMOinfo_ot.xml@@/main/a63_dev/1 -->
+<!-- ###############################################################   -->
+<!-- Document name: SMO XML configuration file                         -->
+<!--                for Upgrading GSM BSC with SMO                     -->
+<!--                                                                   -->
+<!-- Date:          2017-01-31                                         -->
+<!--                                                                   -->
+<!-- Description:                                                      -->
+<!--                                                                   -->
+<!--   SMO General configuration used for download, and CP             -->
+<!--   implementation.                                                 -->
+<!--                                                                   -->
+<!--   This configuration file reflects the contents of                -->
+<!--   the OneTrack package.                                           -->
+<!--                                                                   -->
+<!--   It is usable for                                                -->
+<!--               - APG43L                                            -->
+<!--               - APZ21255, APZ21260                                -->
+<!--                                                                   -->
+<!--     ############################################################  -->
+<!--     ##  IT IS STRONGLY RECOMMENDED TO CHANGE THE CONTENTS     ##  -->
+<!--     ##  OF THIS FILE EXTREMELY CAREFULLY                      ##  -->
+<!--     ############################################################  -->
+<!--                                                                   -->
+<!--                                                                   -->
+<!-- Author:        jesper.palsson@combitech.se                        -->
+<!--                                                                   -->
+<!--                                                                   -->
+<!--                                                                   -->
+<!-- Revision History:                                                 -->
+<!--                                                                   -->
+<!--             jesper.palsson@combitech.se, 2017-01-31               -->
+<!--             - First revision in G16B IPA3                         -->
+<!--                                                                   -->
+<!--             tomasz.madejczyk@ericsson.com, 2018-06-06             -->
+<!--             - Added option of PFM Upgrade                         -->
+<!--                                                                   -->
+<!--             aleksander.kawala@ericsson.com, 2018-08-27            -->
+<!--             - Added variable SMO_PRODUCT_NAME                     -->
+<!--                                                                   -->
+<!-- Description:                                                      -->
+<!--                                                                   -->
+<!--   Configuration template for GSM BSC G16B and later Upgrade       -->
+<!--                                                                   -->
+<!-- Parameter description:                                            -->
+<!--                                                                   -->
+<!--    CHANGE parameters are automatically changed by the buildscript -->
+<!--    Examples of what the ready SMOinfo.xml values shall be:        -->
+<!--    SMO_PACKAGE_DESCRIPTION  = UPG package                         -->
+<!--    SMO_CURRENT_RELEASE  = A53 during project and G15B after RCC   -->
+<!--    SMO_PACKAGE  = WP40                                            -->
+<!--    SMO_PRODUCT_NAME  = GSM Fast BSC SW Upgrade G18.Q2.2           -->
+<!--    SMO_PRODUCT_NUMBER  = CXP 104 0045                             -->
+<!--    SMO_DATE  = 2014-12-05                                         -->
+<!--    SMO_PACKAGE_RSTATE  = P1A033                                   -->
+<!--    SMO_PACKAGE_TYPE  = UPG                                        -->
+<!--    EXCHANGE_ID  = C42B_WP_23_L1 WO                                -->
+<!--                                                                   -->
+<!-- ###############################################################   -->
+<!DOCTYPE SoftwarePackage SYSTEM "/opt/ericsson/nms_smo_srv/etc/smo_softwarepackage.dtd">
+<SoftwarePackage>
+  <ProductData Description="OTADV package" Name="GSM BSC G18.43"
+    Number="CXP 104 0082" ReleaseDate="2018-10-27" Revision="R1A003" Type="OTADV"/>
+  <UpgradeWindow/>
+  <NodeType>
+    <NodePlatform Type="AXE"/>
+    <NodeFunction>
+      <BSC/>
+      <BSCTRC/>
+      <TRC/>
+    </NodeFunction>
+  </NodeType>
+
+  <CommonScriptParams>
+    <NeParams>
+      <Parameter Name="_MM_CONFIG_FILE">
+        <String Prompt="Configuration file name" Description="" MaxLength="50"
+Value="bsc_upg.cfg"/>
+      </Parameter>
+      <Parameter Name="_EXCHANGE_ID_NEWAS">
+	<String Prompt="Exchange header for GSM BSC G18.43" Description="" MaxLength="23"
+Value="B63W43S2500108A WO"/>
+      </Parameter>
+	  <Parameter Name="_EXCHANGE_H_POPUP">
+          <Boolean Prompt="Change header in the later stage of upgrade" Description="" Value="false"/>
+      </Parameter>
+      <Parameter Name="_FCSWI_POPUP">
+          <Boolean Prompt="Popup before activating new SW (side switch)" Description="" Value="false"/>
+      </Parameter>
+	  <Parameter Name="_HC_REPORT_POPUP">
+          <Boolean Prompt="Present popup file with health check report" Description="" Value="false"/>
+      </Parameter>
+	  <Parameter Name="_EXECUTE_RIFDEF">
+          <Boolean Prompt="Execute rifdef if Reliable Ethernet not defined" Description="When Reliable Ethernet is not defined for any node (rifls prinout) rifdef will be executed, uncheck the box if you do not want that." Value="true"/>
+      </Parameter>
+      <Parameter Name="_GENERATE_XML" Hidden="true">
+          <Boolean Prompt="Generate XML printouts file during pre and post HC" Description="" Value="false"/>
+      </Parameter>
+	  <Parameter Name="_UPGRADE_APMML" Hidden="true">
+          <Boolean Value="true"/>
+      </Parameter>
+    </NeParams>
+  </CommonScriptParams>
+
+<Activity Name="Download" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_dw.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run download and import package" Value="dwn">
+          <Item>dwn</Item>
+        </Enum>
+      </Parameter>
+   </JobParams>
+  </Activity>
+
+
+  <Activity Name="Pre Health Check" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_hc.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run pre-HC" Value="pre_hc">
+          <Item>pre_hc</Item>
+        </Enum>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+
+  <Activity Name="EPB1 Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_epb.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run EPB1 FW Upgrade" Value="epb">
+          <Item>epb</Item>
+        </Enum>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+  <Activity Name="EVOET Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_evoet.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run EVOET FW Upgrade" Value="evoet">
+          <Item>evoet</Item>
+        </Enum>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+ <Activity Name="SCXB and CMXB Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_fbsw.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run SCXB and CMXB Upgrade" Value="fbsw">
+          <Item>fbsw</Item>
+        </Enum>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+  <Activity Name="CP Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_cp.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+     <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run MW and CP Upgrade" Value="cp">
+          <Item>cp</Item>
+        </Enum>
+     </Parameter>
+    </JobParams>
+  </Activity>
+
+  <Activity Name="BSC-AP NWI-E AH Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_ap.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_INTERACTION_LEVEL" Hidden="true">
+        <Enum Prompt="User Interaction Level" Description="Level of automation"
+Value="Display Warnings/Errors">
+          <Item>Display all message types</Item>
+          <Item>Display Decisions/Warnings/Errors</Item>
+          <Item>Display Warnings/Errors</Item>
+        </Enum>
+      </Parameter>
+      <Parameter Name="_INTERACTIONS_ALLOWED" Hidden="true">
+        <String Value="1 2 3"/>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+  <Activity Name="PFM Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_pfm.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run PFM Upgrade" Value="pfm">
+          <Item>pfm</Item>
+        </Enum>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+  <Activity Name="Post Health Check" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_hc.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+
+      <Parameter Name="_FILE_TYPE"  Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run post-HC" Value="post_hc">
+          <Item>post_hc</Item>
+        </Enum>
+      </Parameter>
+     </JobParams>
+  </Activity>
+
+ <Activity Name="Verify Upgrade" IsManuallyRestartable="true">
+    <Script ExecutionMode="background" RelativeFileName="OPS/bsc_verify.ccf">
+      <Description/>
+    </Script>
+    <Startup>
+      <Immediate Default="true"/>
+      <Manual/>
+      <Scheduled/>
+    </Startup>
+    <JobParams>
+      <Parameter Name="_FILE_TYPE" Hidden="true">
+        <Enum Prompt="Not Changeable" Description="Run upgrade verification and cleanup." Value="vrf">
+          <Item>vrf</Item>
+        </Enum>
+      </Parameter>
+    </JobParams>
+  </Activity>
+
+
+</SoftwarePackage>

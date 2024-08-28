@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+# ==========================================================
+# Copyright (c) Ericsson AB 2014 All rights reserved.
+#
+# The information in this document is the property of Ericsson.
+#
+# Except as specifically authorized in writing by Ericsson, the
+# receiver of this document shall keep the information contained
+# herein confidential and shall protect the same in whole or in
+# part from disclosure and dissemination to third parties.
+#
+# Disclosure and disseminations to the receivers employees shall
+# only be made on a strict need to know basis.
+# ==========================================================
+# The contents of this file is formated according to
+# SHM upgrade support LMI-14:000031 Uen Rev A 2014-01-09
+--><UpgradePackage name="RadioNode CXP9024418/6 R56B31 18.Q4" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <!-- The list of all ME version to which this UP is applicable -->
+  <ManagedElementTypes>
+    <ManagedElementType platform="RadioNode" productDesignation="RadioNode" productNumber="CXP9024418/6" productRevision="R56B31"/>
+  </ManagedElementTypes>
+  <UpgradePackageContent>
+    <ProductData description="N/A" productName="BASEBAND" productNumber="CXP9024418/6" productRevision="R56B31" productionDate="2018-11-20T16:44:40" type="RadioNode"/>
+  </UpgradePackageContent>
+</UpgradePackage>

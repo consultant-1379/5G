@@ -1,0 +1,5 @@
+x=$(docker ps | grep cas_sftp_server | head -n 2 | tail -1 | awk {'print $1'}); docker kill $x;
+
+docker build -t cas_sftp_server .;
+
+docker run -p 2222:22 --ulimit nofile=90000:90000 -d cas_sftp_server;

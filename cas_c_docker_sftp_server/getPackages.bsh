@@ -1,0 +1,6 @@
+declare -A packages=( ["ftp://anonymous@ftp.athtem.eei.ericsson.se/5G/Zora/CAS_MR/Simulated_CAS/CXP1040084-R2A.zip"]="CXP1040084-R2A.zip" ["ftp://anonymous@ftp.athtem.eei.ericsson.se/5G/Zora/CAS_MR/Simulated_CAS/CXP9024418_6-R56B31.zip"]="CXP9024418_6-R56B31.zip" ["ftp://anonymous@ftp.athtem.eei.ericsson.se/5G/Zora/CAS_MR/Simulated_CAS/CXP102051_27-R56B11.zip"]="CXP102051_27-R56B11.zip" ["ftp://anonymous@ftp.athtem.eei.ericsson.se/5G/Zora/CAS_MR/Simulated_CAS/CXP102051_27-R55C04.zip"]="CXP102051_27-R55C04.zip" ["ftp://anonymous@ftp.athtem.eei.ericsson.se/5G/Zora/CAS_MR/Simulated_CAS/CXP102051_25-R27BL.zip"]="CXP102051_25-R27BL.zip")
+
+for package in "${!packages[@]}"; do 
+    cd CASFiles/
+    wget -O ${packages[$package]} $package
+done
